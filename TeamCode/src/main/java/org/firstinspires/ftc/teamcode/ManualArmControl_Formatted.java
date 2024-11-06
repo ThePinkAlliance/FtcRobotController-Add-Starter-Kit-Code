@@ -123,6 +123,8 @@ public class ManualArmControl_Formatted extends LinearOpMode {
     final double WRIST_FOLDED_CENTER = 0.8333;
     final double WRIST_FOLDED_LEFT = 0.25;
 
+
+
     @Override
     public void runOpMode() {
         /*
@@ -156,6 +158,10 @@ public class ManualArmControl_Formatted extends LinearOpMode {
 
         /*This sets the maximum current that the control hub will apply to the arm before throwing a flag */
         ((DcMotorEx) armMotor).setCurrentAlert(5, CurrentUnit.AMPS);
+
+        armMotor.setTargetPosition(0);
+        armMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        armMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
 
         /* Define and initialize servos.*/
         intake = hardwareMap.get(CRServo.class, "intake");
@@ -233,14 +239,20 @@ public class ManualArmControl_Formatted extends LinearOpMode {
                 wrist.setPosition(WRIST_FOLDED_CENTER);
             }
 
-            // gamepad2.left_stick_y is a double that is from -1 to 1, depending on the joystick position.
-            armMotor.setPower(gamepad2.left_stick_y);
+            if (gamepad2.left_stick_y >= -0.1 && gamepad2.left_stick_y <= 0.1) {
+                armMotor.setTargetPosition(1000);
+                armMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+            } else {
+                // gamepad2.left_stick_y is a double that is from -1 to 1, depending on the joystick position.
+                armMotor.setPower(gamepad2.left_stick_y);
+            }
+
+//            armMotor.setPower(gamepad2.left_stick_y);
 
             /* Check to see if our arm is over the current limit, and report via telemetry. */
             if (((DcMotorEx) armMotor).isOverCurrent()) {
                 telemetry.addLine("MOTOR EXCEEDED CURRENT LIMIT!");
             }
-
 
             /* Send telemetry to the driver of the arm's current position and target position */
             telemetry.addData("armTarget: ", armMotor.getTargetPosition());
