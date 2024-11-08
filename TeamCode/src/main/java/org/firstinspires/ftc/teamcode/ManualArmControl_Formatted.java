@@ -241,10 +241,12 @@ public class ManualArmControl_Formatted extends LinearOpMode {
 
             if (gamepad2.left_stick_y >= -0.1 && gamepad2.left_stick_y <= 0.1) {
                 armMotor.setTargetPosition(1000);
+                // armMotor.setTargetPosition(armMotor.getCurrentPosition()) Try this
                 armMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
             } else {
                 // gamepad2.left_stick_y is a double that is from -1 to 1, depending on the joystick position.
                 armMotor.setPower(gamepad2.left_stick_y);
+                armMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER); // Possible solution to not being able to move arm after.
             }
 
 //            armMotor.setPower(gamepad2.left_stick_y);
