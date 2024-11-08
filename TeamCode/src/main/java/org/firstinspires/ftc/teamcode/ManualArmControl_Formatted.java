@@ -28,7 +28,6 @@ import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.Servo;
-import com.qualcomm.robotcore.hardware.configuration.typecontainers.MotorConfigurationType;
 
 import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit;
 
@@ -123,8 +122,6 @@ public class ManualArmControl_Formatted extends LinearOpMode {
     final double WRIST_FOLDED_CENTER = 0.8333;
     final double WRIST_FOLDED_LEFT = 0.25;
 
-
-
     @Override
     public void runOpMode() {
         /*
@@ -136,15 +133,17 @@ public class ManualArmControl_Formatted extends LinearOpMode {
         double rotate;
         double max;
 
+        int armLastPosition = 0; // This is used in the if-else idle range statement, along with wasUsingPower
+        boolean wasUsingPower = true;
 
         /* Define and Initialize Motors */
-        leftDrive = hardwareMap.get(DcMotor.class, "left_front_drive"); //the left drivetrain motor
-        rightDrive = hardwareMap.get(DcMotor.class, "right_front_drive"); //the right drivetrain motor
-        armMotor = hardwareMap.get(DcMotor.class, "left_arm"); //the arm motor
+        leftDrive = hardwareMap.get(DcMotor.class, "left_front_drive"); // the left drivetrain motor
+        rightDrive = hardwareMap.get(DcMotor.class, "right_front_drive"); // the right drivetrain motor
+        armMotor = hardwareMap.get(DcMotor.class, "left_arm"); // the arm motor
 
 
         /* Most skid-steer/differential drive robots require reversing one motor to drive forward.
-        for this robot, we reverse the right motor.*/
+        for this robot, we reverse the right motor. */
         leftDrive.setDirection(DcMotor.Direction.FORWARD);
         rightDrive.setDirection(DcMotor.Direction.REVERSE);
 
@@ -156,14 +155,15 @@ public class ManualArmControl_Formatted extends LinearOpMode {
         rightDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         armMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
-        /*This sets the maximum current that the control hub will apply to the arm before throwing a flag */
+        /* This sets the maximum current that the control hub will apply to the arm before throwing a flag. */
         ((DcMotorEx) armMotor).setCurrentAlert(5, CurrentUnit.AMPS);
 
+        // Position 0 is the position that the arm starts at.
         armMotor.setTargetPosition(0);
         armMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
         armMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
 
-        /* Define and initialize servos.*/
+        /* Define and initialize servos. */
         intake = hardwareMap.get(CRServo.class, "intake");
         wrist = hardwareMap.get(Servo.class, "wrist");
 
@@ -240,16 +240,26 @@ public class ManualArmControl_Formatted extends LinearOpMode {
             }
 
             if (gamepad2.left_stick_y >= -0.1 && gamepad2.left_stick_y <= 0.1) {
-                armMotor.setTargetPosition(1000);
-                // armMotor.setTargetPosition(armMotor.getCurrentPosition()) Try this
+                /* We are using wasUsingPower to keep the arm at it's last position before it went into the idle range.
+                This happens by setting wasUsingPower to TRUE when we are using setPower, then when the joystick goes into the idle range,
+                we check if wasUsingPower is true, which is true the first time it transfers from being outside the range to inside the range.
+                If it is true, we set armLastPosition to the current arm position, then we set wasUsingPower to false, so that we don't call it again
+                while joystick is still inside idle range. When the joystick goes outside idle range, then we set wasUsingPower to true again.
+                Allowing our idle range statement to be able to function correctly the next time.
+                */
+
+                if (wasUsingPower) {
+                    armLastPosition = armMotor.getCurrentPosition();
+                    wasUsingPower = false;
+                }
+
+                armMotor.setTargetPosition(armLastPosition);
                 armMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
             } else {
-                // gamepad2.left_stick_y is a double that is from -1 to 1, depending on the joystick position.
+                wasUsingPower = true;
                 armMotor.setPower(gamepad2.left_stick_y);
-                armMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER); // Possible solution to not being able to move arm after.
+                armMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
             }
-
-//            armMotor.setPower(gamepad2.left_stick_y);
 
             /* Check to see if our arm is over the current limit, and report via telemetry. */
             if (((DcMotorEx) armMotor).isOverCurrent()) {
@@ -260,6 +270,8 @@ public class ManualArmControl_Formatted extends LinearOpMode {
             telemetry.addData("armTarget: ", armMotor.getTargetPosition());
             telemetry.addData("arm Encoder: ", armMotor.getCurrentPosition());
             telemetry.addData("left_stick_y", gamepad2.left_stick_y);
+            telemetry.addData("armLastPosition", armLastPosition);
+            telemetry.addData("wasUsingPower", wasUsingPower);
             telemetry.update();
         }
     }
