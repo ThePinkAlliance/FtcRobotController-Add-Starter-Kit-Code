@@ -119,8 +119,9 @@ public class ManualArmControl_Formatted extends LinearOpMode {
     final double INTAKE_DEPOSIT = 0.5;
 
     /* Variables to store the positions that the wrist should be set to when folding in, or folding out. */
-    final double WRIST_FOLDED_CENTER = 0.8333;
-    final double WRIST_FOLDED_LEFT = 0.25;
+    final double WRIST_FOLDED_CENTER = 0.4333;
+//    final double WRIST_FOLDED_LEFT = 0.05;
+    final double WRIST_FOLDED_LEFT = WRIST_FOLDED_CENTER + (WRIST_FOLDED_CENTER / 2);
 
     @Override
     public void runOpMode() {
